@@ -3881,6 +3881,13 @@ if printf '%s' "$OUT" | grep -qF "return to this one with" &&
 else
     bad "rollback line, listed build: out='$OUT'"
 fi
+# /tmp is RAM, and the flash phase still needs it: the manifest goes once the
+# block above is printed.
+if [ ! -e "$SB/tmp/manifest.flat" ] && flashed /dev/mtd3; then
+    ok "the manifest is not kept in /tmp for the flash phase"
+else
+    bad "manifest left in /tmp: $(ls -l "$SB/tmp/manifest.flat" 2>&1)"
+fi
 banner_case; banner_dl
 printf 'nightly-20260711-bbbbbbb ssc338q_lite nor x\n' > "$SB/manifest.flat"
 RUN_ENV="STUB_MANIFEST=$SB/manifest.flat"

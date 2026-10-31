@@ -1,6 +1,6 @@
 #!/bin/sh
 # OpenIPC.org | 2025
-scr_version=1.0.81
+scr_version=1.0.82
 
 args="$@"
 LOCK_FILE=/tmp/sysupgrade.lock
@@ -3629,6 +3629,10 @@ print_transition() {
 		echo_c 33 " Daily builds are not release-tested: features may regress." ;;
 	esac
 	echo_c 36 "=================================================================="
+	# Nothing reads the manifest after this, and /tmp is RAM: kept, its 1.7 MB
+	# was what check_flash_ram found missing on a 32 MB hi3516ev200 (1016 KB
+	# left of the 2048 it wants; 2328 KB without it).
+	rm -f "$MANIFEST_CACHE"
 }
 
 # One line per upgrade in $HISTORY_FILE: UTC time, from, to, and which door
