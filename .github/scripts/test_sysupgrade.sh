@@ -351,6 +351,11 @@ stub busybox '
 applet=$1; shift
 case "$applet" in
     flashcp|flash_eraseall) echo "$applet $*" >> "$FLASH_LOG"
+                            # A manifest still in /tmp when a write starts is
+                            # RAM the flash phase did not have; noted apart, so
+                            # the flash log stays what was written.
+                            [ -e "${FLASH_LOG%/*}/manifest.flat" ] &&
+                                echo "$applet $*" >> "${FLASH_LOG%/*}/manifest-at-flash"
                             # Real flashcp writes progress to stdout, and under
                             # -s that is what set_progress pipes through awk for
                             # the WebUI. Without some, "does the progress still
@@ -3874,6 +3879,7 @@ fi
 banner_case; banner_dl
 printf 'nightly-20260711-bbbbbbb ssc338q_lite nor x\nnightly-20260601-aaaaaaa ssc338q_lite nor x\n' > "$SB/manifest.flat"
 RUN_ENV="STUB_MANIFEST=$SB/manifest.flat"
+rm -f "$SB/tmp/manifest-at-flash"
 run -z -k -r
 if printf '%s' "$OUT" | grep -qF "return to this one with" &&
     printf '%s' "$OUT" | grep -qF "sysupgrade --build=nightly-20260601-aaaaaaa"; then
@@ -3882,11 +3888,11 @@ else
     bad "rollback line, listed build: out='$OUT'"
 fi
 # /tmp is RAM, and the flash phase still needs it: the manifest goes once the
-# block above is printed.
-if [ ! -e "$SB/tmp/manifest.flat" ] && flashed /dev/mtd3; then
+# block above is printed, so no write finds it there.
+if [ ! -e "$SB/tmp/manifest-at-flash" ] && flashed /dev/mtd3; then
     ok "the manifest is not kept in /tmp for the flash phase"
 else
-    bad "manifest left in /tmp: $(ls -l "$SB/tmp/manifest.flat" 2>&1)"
+    bad "manifest in /tmp while flashing: $(cat "$SB/tmp/manifest-at-flash" 2>&1)"
 fi
 banner_case; banner_dl
 printf 'nightly-20260711-bbbbbbb ssc338q_lite nor x\n' > "$SB/manifest.flat"
